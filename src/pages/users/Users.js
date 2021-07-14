@@ -7,6 +7,11 @@ import TableCell from "@material-ui/core/TableCell";
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import classnames from "classnames";
 
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Slide from '@material-ui/core/Slide';
+
 import api from "../../services/api";
 import { textLabels } from "../../utils/labelsTable";
 import { columns } from "../../utils/columnsContacts";
@@ -16,10 +21,16 @@ import useStyles from "./styles";
 // components
 import PageTitle from "../../components/PageTitle/PageTitle";
 
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
 export default function Users(props) {
   const classes = useStyles();
 
   const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [openModal, setOpenModal] = useState(false);
 
   async function getUsers() {
     try {
@@ -45,6 +56,30 @@ export default function Users(props) {
     });
   };
 
+  const deleteUser = async () => {
+    try {
+      await api.delete(`users/${selectedUserId}`);
+
+      setOpenModal(false);
+
+      toast.success('Cliente excluido com sucesso!');
+
+      return getUsers();
+    } catch (error) {
+      return toast.error('Ocorreu um erro inesperado. Tente novamente!');
+    }
+  };
+
+  const alertDelete = userId => {
+    setSelectedUserId(userId);
+
+    return setOpenModal(true);
+  };
+
+  const handleClose = () => {
+    setOpenModal(false);
+  };
+
   const options = {
     selectableRows: 'none',
     filterType: 'checkbox',
@@ -65,6 +100,14 @@ export default function Users(props) {
               onClick={() => editUser(rowData[0])}
             >
               Editar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              className={classnames(classes.buttonOptions)}
+              onClick={() => alertDelete(rowData[0])}
+            >
+              Excluir
             </Button>
           </TableCell>
         </TableRow>
@@ -116,6 +159,26 @@ export default function Users(props) {
           </MuiThemeProvider>
         </Grid>
       </Grid>
+      <Dialog
+        open={openModal}
+        TransitionComponent={Transition}
+        keepMounted
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-slide-title"
+        aria-describedby="alert-dialog-slide-description"
+      >
+        <DialogTitle id="alert-dialog-slide-title">
+          Atenção! Realmente deseja excluir esta cliente?
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={deleteUser} color="success">
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
